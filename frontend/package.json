@@ -30,7 +30,7 @@
     "jspdf": "^4.2.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.8.0",
-    "next": "^15.4.3",
+    "next": "15.4.10",
     "prismjs": "^1.30.0",
     "react": "^19.0.0",
     "react-apexcharts": "^1.7.0",
