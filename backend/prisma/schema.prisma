@@ -1,0 +1,415 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ─── User (for JWT auth) ───────────────────────────────────────────────
+
+model User {
+  id             String         @id @default(auto()) @map("_id") @db.ObjectId
+  email          String         @unique
+  password       String
+  name           String
+  role           String         @default("OPERATOR") // ADMIN | OPERATOR
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  refreshTokens  RefreshToken[]
+  notifications  Notification[]
+}
+
+// ─── Refresh Token ─────────────────────────────────────────────────────
+
+model RefreshToken {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  token     String   @unique
+  userId    String   @db.ObjectId
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ─── Document Type (master list) ───────────────────────────────────────
+
+model DocumentType {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  code        String   @unique // e.g. "RC", "INSURANCE", "ROUTE_PERMIT"
+  name        String          // e.g. "Registration Certificate"
+  description String?
+  hasExpiry   Boolean  @default(true)
+  isSystem    Boolean  @default(false) // true for original 6, prevents deletion
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  groupDocTypes GroupDocumentType[]
+}
+
+// ─── Group Document Type (join: which doc types a group requires) ──────
+
+model GroupDocumentType {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  groupId        String   @db.ObjectId
+  documentTypeId String   @db.ObjectId
+  isRequired     Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  group        VehicleGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  documentType DocumentType @relation(fields: [documentTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, documentTypeId])
+  @@index([groupId])
+  @@index([documentTypeId])
+}
+
+// ─── Vehicle Group ─────────────────────────────────────────────────────
+
+model VehicleGroup {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String   @unique
+  icon      String
+  color     String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tyreCount        Int      @default(4)
+  vehicles         Vehicle[]
+  requiredDocTypes GroupDocumentType[]
+}
+
+// ─── Vehicle ───────────────────────────────────────────────────────────
+
+model Vehicle {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  registrationNumber String   @unique
+  ownerName          String?
+  make               String
+  model              String
+  fuelType           String
+  chassisNumber      String?
+  engineNumber       String?
+  gvw                Int?
+  seatingCapacity    Int?
+  permitType         String?
+  registrationDate   DateTime?
+  qrCodeUrl          String?
+  invoiceUrl         String?
+  images             String[]
+  profileImage       String?
+  groupId            String?  @db.ObjectId
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  group               VehicleGroup?        @relation(fields: [groupId], references: [id])
+  complianceDocuments ComplianceDocument[]
+  challans            Challan[]
+  driverMappings      VehicleDriverMapping[]
+  fastags             Fastag[]
+  insurancePolicies   InsurancePolicy[]
+  tyres               Tyre[]
+  serviceRecords      ServiceRecord[]
+  expenses            Expense[]
+
+  @@index([groupId])
+}
+
+// ─── Service Record ───────────────────────────────────────────────────
+
+type ServicePart {
+  name      String
+  quantity  Int      @default(1)
+  unitCost  Float
+  proofUrl  String?  // individual proof image per part
+}
+
+model ServiceRecord {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  vehicleId   String        @db.ObjectId
+  title       String
+  description String?
+  serviceDate DateTime
+  odometerKm  Int?
+  totalCost   Float         @default(0)
+  receiptUrls String[]
+  parts       ServicePart[]
+  nextDueDate DateTime?
+  nextDueKm   Int?
+  status      String        @default("COMPLETED") // COMPLETED, UPCOMING
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([serviceDate])
+}
+
+// ─── Expense ──────────────────────────────────────────────────────────
+
+model Expense {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  vehicleId   String   @db.ObjectId
+  category    String   // COMPLIANCE, FUEL, TYRE, MAINTENANCE, PARKING, TOLL, MISC
+  title       String
+  amount      Float
+  expenseDate DateTime
+  description String?
+  proofUrl    String?
+  referenceId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([expenseDate])
+  @@index([category])
+}
+
+// ─── Tyre ──────────────────────────────────────────────────────────────
+
+model Tyre {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  vehicleId   String    @db.ObjectId
+  position    String    // FL, FR, RL, RR, RL_O, RL_I, SPARE etc.
+  brand       String?
+  size        String?   // e.g. "215/60 R16"
+  installedAt DateTime?
+  kmAtInstall Int?
+  condition   String    @default("GOOD") // GOOD, AVERAGE, REPLACE
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+}
+
+// ─── Insurance Policy ─────────────────────────────────────────────────
+
+model InsurancePolicy {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  vehicleId       String    @db.ObjectId
+  policyNumber    String?
+  insurer         String?
+  planName        String?
+  startDate       DateTime?
+  expiryDate      DateTime?
+  premium         Float?
+  coverageType    String?
+  coverageDetails String[]
+  addOns          String[]
+  documentUrl     String?
+  status          String    @default("ACTIVE") // ACTIVE, EXPIRING, EXPIRED, RENEWED
+  paidAmount      Float?
+  paymentId       String?
+  paymentStatus   String?
+  extractedData   Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+}
+
+// ─── FASTag ───────────────────────────────────────────────────────────
+
+model Fastag {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  vehicleId   String    @db.ObjectId
+  tagId       String    @unique
+  provider    String?
+  balance     Float     @default(0)
+  status      String    @default("ACTIVE") // ACTIVE, INACTIVE, BLACKLISTED, EXPIRED
+  enrolledAt  DateTime  @default(now())
+  expiryDate  DateTime
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  vehicle      Vehicle             @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  transactions FastagTransaction[]
+
+  @@index([vehicleId])
+}
+
+model FastagTransaction {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  fastagId    String   @db.ObjectId
+  type        String   // TOLL, RECHARGE, REFUND
+  amount      Float
+  balance     Float
+  description String?
+  tollPlaza   String?
+  createdAt   DateTime @default(now())
+
+  fastag Fastag @relation(fields: [fastagId], references: [id], onDelete: Cascade)
+
+  @@index([fastagId])
+}
+
+// ─── Compliance Document ───────────────────────────────────────────────
+
+model ComplianceDocument {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  vehicleId      String    @db.ObjectId
+  type           String    // RC, INSURANCE, PERMIT, PUCC, FITNESS, TAX
+  expiryDate     DateTime?
+  documentUrl    String?
+  status         String    @default("GREEN") // GREEN, YELLOW, RED
+  isActive       Boolean   @default(true)
+  archivedAt     DateTime?
+  lastVerifiedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId, type, isActive])
+}
+
+// ─── Challan ───────────────────────────────────────────────────────────
+
+model Challan {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  vehicleId       String    @db.ObjectId
+  challanNumber   String?
+  amount          Float
+  userCharges     Float     @default(0)
+  location        String?
+  unitName        String?
+  psLimits        String?
+  violation       String?
+  status          String    @default("PENDING") // PENDING, PROCESSING, PAID, FAILED
+  issuedAt        DateTime
+  source          String?
+  authorizedBy    String?
+  proofImageUrl   String?
+  responsibleId   String?   @db.ObjectId
+  paidAt          DateTime?
+  paymentId       String?   @db.ObjectId
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  vehicle Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  payment Payment? @relation(fields: [paymentId], references: [id])
+
+  @@index([vehicleId])
+  @@index([status])
+  @@index([paymentId])
+}
+
+// ─── Payment ───────────────────────────────────────────────────────────
+
+model Payment {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  totalAmount   Float
+  method        String   // UPI, CARD, CASH, NETBANKING
+  transactionId String?
+  status        String   @default("SUCCESS") // SUCCESS, FAILED, PENDING
+  paidBy        String   @db.ObjectId
+  createdAt     DateTime @default(now())
+
+  challans Challan[]
+
+  @@index([paidBy])
+}
+
+// ─── Driver ────────────────────────────────────────────────────────────
+
+model Driver {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  phone            String?
+  aadhaarLast4     String?
+  licenseNumber    String   @unique
+  licenseExpiry    DateTime
+  vehicleClass     String
+  riskScore        Float    @default(0)
+  bloodGroup       String?
+  fatherName       String?
+  motherName       String?
+  emergencyContact    String?
+  emergencyContacts   Json?
+  currentAddress      String?
+  currentAddressPhotos String[]
+  permanentAddress    String?
+  permanentAddressPhotos String[]
+  verificationToken   String?   @unique
+  profilePhoto        String?
+  currentAddressLat   Float?
+  currentAddressLng   Float?
+  permanentAddressLat Float?
+  permanentAddressLng Float?
+  selfVerifiedAt      DateTime?
+  adminVerified       Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  documents       DriverDocument[]
+  vehicleMappings VehicleDriverMapping[]
+}
+
+// ─── Driver Document ───────────────────────────────────────────────────
+
+model DriverDocument {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  driverId    String    @db.ObjectId
+  type        String    // DL, MEDICAL, POLICE_VERIFICATION, AADHAAR, PAN
+  expiryDate  DateTime?
+  documentUrl String?
+  status      String    @default("GREEN") // GREEN, YELLOW, RED
+  isActive    Boolean   @default(true)
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([driverId, type, isActive])
+}
+
+// ─── Vehicle-Driver Mapping ────────────────────────────────────────────
+
+model VehicleDriverMapping {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  vehicleId    String    @db.ObjectId
+  driverId     String    @db.ObjectId
+  assignedAt   DateTime  @default(now())
+  unassignedAt DateTime?
+  isActive     Boolean   @default(true)
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  driver  Driver  @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([driverId])
+  @@index([isActive])
+}
+
+// ─── Notification ──────────────────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  type      String   // DOCUMENT_EXPIRY, CHALLAN_NEW, CHALLAN_PAID, LICENSE_EXPIRY, ASSIGNMENT, SYSTEM
+  title     String
+  message   String
+  entityId  String?  // ID of related entity (vehicle, driver, challan)
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
