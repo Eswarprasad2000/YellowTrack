@@ -31,14 +31,6 @@ interface DriverData {
   adminVerified: boolean;
 }
 
-const _VEHICLE_CLASSES = [
-  { value: "LMV", label: "LMV - Light Motor Vehicle" },
-  { value: "HMV", label: "HMV - Heavy Motor Vehicle" },
-  { value: "HGMV", label: "HGMV - Heavy Goods Motor Vehicle" },
-  { value: "HPMV", label: "HPMV - Heavy Passenger Motor Vehicle" },
-  { value: "TRANS", label: "TRANS - Transport Vehicle" },
-];
-
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
 
 const RELATIONS = ["Father", "Mother", "Spouse", "Brother", "Sister", "Son", "Daughter", "Friend", "Relative", "Others"];
