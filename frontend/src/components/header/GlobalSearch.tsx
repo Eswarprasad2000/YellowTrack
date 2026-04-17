@@ -171,7 +171,7 @@ export default function GlobalSearch() {
               {results.filter((r) => r.type === "vehicle").length > 0 && (
                 <div>
                   <p className="px-4 pt-3 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Vehicles</p>
-                  {results.filter((r) => r.type === "vehicle").map((r, i) => {
+                  {results.filter((r) => r.type === "vehicle").map((r) => {
                     const globalIdx = results.indexOf(r);
                     return (
                       <button

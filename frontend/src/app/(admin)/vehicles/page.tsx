@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { vehicleAPI, vehicleGroupAPI } from "@/lib/api";
 import Badge from "@/components/ui/badge/Badge";
 import Link from "next/link";
-import { Skeleton, VehiclesListSkeleton } from "@/components/ui/Skeleton";
+import { VehiclesListSkeleton } from "@/components/ui/Skeleton";
 import Pagination from "@/components/ui/Pagination";
 import { getVehicleTypeIcon } from "@/components/icons/VehicleTypeIcons";
 import { Plus, Search, Truck, LayoutGrid, List, ChevronRight, User } from "lucide-react";
@@ -50,7 +50,7 @@ export default function VehiclesPage() {
   const [groupFilter, setGroupFilter] = useState("ALL");
   const [groups, setGroups] = useState<VehicleGroup[]>([]);
   const [loading, setLoading] = useState(true);
-  const [fetching, setFetching] = useState(false);
+  const [, setFetching] = useState(false);
   const [view, setView] = useState<"cards" | "list">("list");
   const [hoverPhoto, setHoverPhoto] = useState<{ url: string; x: number; y: number } | null>(null);
   const searchRef = useRef(search);

@@ -31,7 +31,7 @@ interface DriverData {
   adminVerified: boolean;
 }
 
-const VEHICLE_CLASSES = [
+const _VEHICLE_CLASSES = [
   { value: "LMV", label: "LMV - Light Motor Vehicle" },
   { value: "HMV", label: "HMV - Heavy Motor Vehicle" },
   { value: "HGMV", label: "HGMV - Heavy Goods Motor Vehicle" },

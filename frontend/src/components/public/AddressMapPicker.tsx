@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import dynamic from "next/dynamic";
+// import dynamic from "next/dynamic";
 
 interface AddressValue {
   address: string;
