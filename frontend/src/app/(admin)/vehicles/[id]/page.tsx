@@ -35,6 +35,7 @@ interface Challan {
   authorizedBy: string | null;
   proofImageUrl: string | null;
   paidAt: string | null;
+  comment: string | null;
 }
 
 interface ServicePart {
