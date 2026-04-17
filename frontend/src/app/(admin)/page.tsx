@@ -228,7 +228,7 @@ export default function DashboardPage() {
           { href: "/drivers/compliance", Icon: CreditCard, label: "Driver Docs", color: "from-purple-400 to-purple-500", shadow: "shadow-purple-500/20" },
           { href: "/challans", Icon: AlertTriangle, label: "Challans", color: "from-red-400 to-red-500", shadow: "shadow-red-500/20" },
           { href: "/fleet-alerts", Icon: Bell, label: "Alerts", color: "from-orange-400 to-orange-500", shadow: "shadow-orange-500/20", badge: unreadNotifs > 0 ? unreadNotifs : undefined },
-        ] as const).map((item) => (
+        ] as Array<{ href: string; Icon: React.ComponentType<React.SVGProps<SVGSVGElement> & { strokeWidth?: number }>; label: string; color: string; shadow: string; badge?: number }>).map((item) => (
           <Link key={item.href} href={item.href}
             className="group relative flex flex-col items-center gap-3 p-5 rounded-2xl border border-gray-200/80 bg-white dark:border-gray-800 dark:bg-white/[0.02] hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-none hover:-translate-y-0.5 transition-all duration-300">
             <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${item.color} flex items-center justify-center shadow-lg ${item.shadow} group-hover:scale-110 transition-transform duration-300`}>
