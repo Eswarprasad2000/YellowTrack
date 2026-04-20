@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { vehicleAPI } from "@/lib/api";
 import { useToast } from "@/context/ToastContext";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { ExpensesDashboardSkeleton } from "@/components/ui/Skeleton";
 import {
   Plus, Download, AlertTriangle, Wrench, Box, ShieldCheck, Car, CheckCircle2,
@@ -51,6 +52,14 @@ const CATEGORY_COLORS_HEX: Record<string, string> = {
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:5001";
 
 export default function VehicleExpensesPage() {
+  return (
+    <Suspense fallback={<ExpensesDashboardSkeleton />}>
+      <VehicleExpensesContent />
+    </Suspense>
+  );
+}
+
+function VehicleExpensesContent() {
   const toast = useToast();
   const searchParams = useSearchParams();
   const [report, setReport] = useState<ReportData | null>(null);
