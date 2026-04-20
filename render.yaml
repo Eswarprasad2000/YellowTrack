@@ -4,7 +4,7 @@ services:
     runtime: node
     rootDir: backend
     plan: free
-    buildCommand: npm install && npx prisma generate
+    buildCommand: npm install
     startCommand: node src/server.js
     healthCheckPath: /health
     autoDeploy: true
